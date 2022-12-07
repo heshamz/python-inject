@@ -255,6 +255,24 @@ def foo(user):
     pass
 ```
 
+## Added new feature
+## Creating new instance every time:
+
+```python
+import inject
+
+# Given a user class.
+class User(object):
+    def __init__(self, username: str = None) -> None:
+                self.username = username
+
+# Bind User to on class.
+inject.configure(lambda binder: binder.bind(User, User))
+
+# Inject a new User instance with dynamic parameters.
+user = inject.new(User, username="current_user")
+```
+
 ## Links
 * Project: https://github.com/ivankorobkov/python-inject
 

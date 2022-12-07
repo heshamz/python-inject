@@ -241,6 +241,43 @@ class Injector(object):
                 'Created a runtime binding for key=%s, instance=%s', cls, instance)
             return instance
 
+    @overload
+    def get_new(self, cls: Type[T], **kwargs: Any) -> T: ...
+
+    @overload
+    def get_new(self, cls: Hashable, **kwargs: Any) -> Injectable: ...
+
+    def get_new(self, cls: Binding, **kwargs: Any) -> Injectable:
+        """Return an new instance for a class with the input arguments."""
+        # binding = self._bindings.get(cls)
+        # if binding:
+        #     return binding()
+
+        # Try to create a runtime binding.
+        with _BINDING_LOCK:
+            # binding = self._bindings.get(cls)
+            # if binding:
+            #     return binding()
+
+            if not self._bind_in_runtime:
+                raise InjectorException(
+                    'No binding was found for key=%s' % cls)
+
+            if not callable(cls):
+                raise InjectorException(
+                    'Cannot create a runtime binding, the key is not callable, key=%s' % cls)
+
+            try:
+                instance = cls(**kwargs)
+            except TypeError as previous_error:
+                raise ConstructorTypeError(cls, previous_error)
+
+            # self._bindings[cls] = lambda: instance
+
+            logger.debug(
+                'Created a new instance for key=%s, instance=%s', cls, instance)
+            return instance            
+
 
 class InjectorException(Exception):
     pass
@@ -411,6 +448,16 @@ def instance(cls: Hashable) -> Injectable: ...
 def instance(cls: Binding) -> Injectable:
     """Inject an instance of a class."""
     return get_injector_or_die().get_instance(cls)
+
+@overload
+def new(cls: Type[T], **kwargs: Any) -> T: ...
+
+@overload
+def new(cls: Hashable, **kwargs: Any) -> Injectable: ...
+
+def new(cls: Binding, **kwargs: Any) -> Injectable:
+    """Inject an instance of a class."""
+    return get_injector_or_die().get_new(cls, **kwargs)
 
 @overload
 def attr(cls: Type[T]) -> T: ...
