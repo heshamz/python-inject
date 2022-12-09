@@ -256,7 +256,8 @@ def foo(user):
 ```
 
 ## Added new feature
-## Creating new instance every time:
+## Binding to Type:
+## Creating new instance every time for the bind to type:
 
 ```python
 import inject
@@ -267,7 +268,7 @@ class User(object):
                 self.username = username
 
 # Bind User to on class.
-inject.configure(lambda binder: binder.bind(User, User))
+inject.configure(lambda binder: binder.bind_to_type(User, User))
 
 # Inject a new User instance with dynamic parameters.
 user = inject.new(User, username="current_user")

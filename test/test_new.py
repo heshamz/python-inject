@@ -1,20 +1,49 @@
+from abc import ABC, abstractmethod
 import inject
 from test import BaseTestInject
 
+class IDummy(ABC):
+    @abstractmethod
+    def do(): pass
+
+class Dummy(IDummy):
+    def __init__(self, param: int = None) -> None:
+        self.param = param
+    
+    def do(): pass                
+
+def my_config(binder):
+    binder.bind(Dummy, Dummy(param=1001))
+    binder.bind_to_type(IDummy, Dummy)
 
 class TestInjectInstance(BaseTestInject):
     def test_new(self):
-        class Dummy:
-            def __init__(self, param: int = None) -> None:
-                self.param = param
+
+        inject.configure(my_config)
+
+        instance1 = inject.instance(Dummy)
+        assert instance1.param == 1001
+
+        instance2 = inject.instance(Dummy)
         
-        inject.configure(lambda binder: binder.bind(Dummy, Dummy))
+        assert instance1 == instance2
+        
+        instance1 = inject.instance(IDummy)
+        assert instance1.param == None
+        
+        instance2 = inject.instance(IDummy)
+        assert instance2.param == None
 
-        instance = inject.new(Dummy)
-        assert instance.param == None
+        assert instance1 != instance2
 
-        instance = inject.new(Dummy, param=10)
-        assert instance.param == 10
+        with self.assertRaises(inject.InjectorException):
+            inject.new(Dummy)
 
-        instance = inject.new(Dummy, param=20)
-        assert instance.param == 20
+        instance1 = inject.new(IDummy, param=10)
+        assert instance1.param == 10
+
+        instance2 = inject.new(IDummy, param=20)
+        assert instance2.param == 20
+
+        assert instance1 != instance2
+        

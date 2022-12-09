@@ -165,6 +165,19 @@ class Binder(object):
         logger.debug('Bound %s to a provider %s', cls, provider)
         return self
 
+    def bind_to_type(self, cls: Binding, type: Binding) -> 'Binder':
+        """Bind a class to a callable instance provider executed for each injection."""
+        self._check_class(cls)
+        if type is None:
+            raise InjectorException('Type cannot be None, key=%s' % cls)
+
+        b = _TypeBinding(type)
+        self._bindings[cls] = b
+        self._maybe_bind_forward(cls, b)
+
+        logger.debug('Bound %s to a type %s', cls, type)
+        return self        
+
     def _check_class(self, cls: Binding) -> None:
         if cls is None:
             raise InjectorException('Binding key cannot be None')
@@ -251,12 +264,17 @@ class Injector(object):
         """Return an new instance for a class with the input arguments."""
         binding = self._bindings.get(cls)
         if binding:
+            if not isinstance(binding, _TypeBinding):
+                raise InjectorException('New is applicable only for type binding')
+
             return binding(**kwargs)
 
         # Try to create a runtime binding.
         with _BINDING_LOCK:
             binding = self._bindings.get(cls)
             if binding:
+                if not isinstance(binding, _TypeBinding):
+                    raise InjectorException('New is applicable only for type binding')
                 return binding(**kwargs)
 
             if not self._bind_in_runtime:
@@ -274,6 +292,7 @@ class Injector(object):
 
             logger.debug(
                 'Created a new instance for key=%s, instance=%s', cls, instance)
+
             return instance            
 
 
@@ -300,6 +319,15 @@ class _ConstructorBinding(Generic[T]):
             self._created = True
         return self._instance
 
+class _TypeBinding(Generic[T]):
+    _instance: Optional[T]
+
+    def __init__(self, type: Binding) -> None:
+        self._type = type
+
+    def __call__(self, **kwargs: Any) -> T:
+        with _BINDING_LOCK:
+            return self._type(**kwargs)
 
 class _AttributeInjection(object):
     def __init__(self, cls: Binding) -> None:
