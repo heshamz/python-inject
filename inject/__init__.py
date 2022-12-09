@@ -249,15 +249,15 @@ class Injector(object):
 
     def get_new(self, cls: Binding, **kwargs: Any) -> Injectable:
         """Return an new instance for a class with the input arguments."""
-        # binding = self._bindings.get(cls)
-        # if binding:
-        #     return binding()
+        binding = self._bindings.get(cls)
+        if binding:
+            return binding(**kwargs)
 
         # Try to create a runtime binding.
         with _BINDING_LOCK:
-            # binding = self._bindings.get(cls)
-            # if binding:
-            #     return binding()
+            binding = self._bindings.get(cls)
+            if binding:
+                return binding(**kwargs)
 
             if not self._bind_in_runtime:
                 raise InjectorException(
@@ -271,8 +271,6 @@ class Injector(object):
                 instance = cls(**kwargs)
             except TypeError as previous_error:
                 raise ConstructorTypeError(cls, previous_error)
-
-            # self._bindings[cls] = lambda: instance
 
             logger.debug(
                 'Created a new instance for key=%s, instance=%s', cls, instance)
